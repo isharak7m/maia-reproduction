@@ -47,14 +47,14 @@
   <td align="center">33-40%</td>
 </tr>
 <tr style="background:#f0f0f0">
-  <td><strong>Maia-Reduced</strong> (32ch, 6blk)</td>
+  <td><strong>Maia (ours)</strong><br><small style="color:#666">Our smaller variant: 32ch, 6 blocks, no history</small></td>
   <td align="center"><strong>26.0%</strong></td>
   <td align="center"><strong>25.4%</strong></td>
   <td align="center"><strong>26.4%</strong></td>
   <td align="center">—</td>
 </tr>
 <tr style="background:#fff3cd">
-  <td><strong>Maia-Full</strong> (256ch, 15blk, +history)</td>
+  <td><strong>Maia (paper arch)</strong><br><small style="color:#666">Paper's architecture: 256ch, 15 blocks, 8 history planes</small></td>
   <td align="center"><strong>19.6%</strong></td>
   <td align="center"><strong>22.8%</strong></td>
   <td align="center"><strong>28.2%</strong></td>
@@ -123,14 +123,15 @@ Policy Head: Conv2D(256→73, 3×3) → Flatten → 4672 logits
 Value Head: Conv2D(256→1, 3×3) → FC(256) → FC(3) [WDL]
 ```
 
-| Component | Paper | Our Implementation | File |
-|-----------|-------|-------------------|------|
-| Initial conv | 113→256, 3×3, BN, ReLU | Same | `src/models/maia_net.py` |
-| Residual blocks | 15 blocks | 15 (6 for reduced) | `src/models/maia_net.py` |
-| Channels | 256 | 256 (32 for reduced) | — |
-| SE blocks | Squeeze-and-excitation | Same | `src/models/maia_net.py` |
-| Policy head | Conv 256→73, flatten | Same | `src/models/maia_net.py` |
-| Value head | Conv→FC256→FC3 | Same | `src/models/maia_net.py` |
+| Component | Paper's Architecture | Our Smaller Variant | File |
+|-----------|---------------------|---------------------|------|
+| Initial conv | 113→256, 3×3, BN, ReLU | 17→32, 3×3, BN, ReLU | `src/models/maia_net.py` |
+| Residual blocks | **15 blocks** at 256ch | **6 blocks** at 32ch | `src/models/maia_net.py` |
+| SE blocks | Squeeze-and-excitation | Same (at 32ch) | `src/models/maia_net.py` |
+| History planes | **8** (input = 113ch) | **None** (input = 17ch) | `src/encoding/board.py` |
+| Policy head | Conv 256→73, flatten | Conv 32→73, flatten | `src/models/maia_net.py` |
+| Value head | Conv→FC256→FC3 | Conv→FC32→FC3 | `src/models/maia_net.py` |
+| Parameters | **18.6M** | **265K** | — |
 
 ### 4.3 SE Block (Channel Attention)
 
