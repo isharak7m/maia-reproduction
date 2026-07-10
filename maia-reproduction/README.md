@@ -119,6 +119,14 @@ The original Maia paper trained on 8× NVIDIA V100 GPUs for days, processing 400
 
 The V-shaped accuracy pattern (highest at self bin, dropping off for other bins) is the paper's core finding and is reproduced here.
 
+## Detailed Reproduction Report
+
+See [`docs/reproduction_report.md`](docs/reproduction_report.md) for:
+- Per-figure comparison to the paper
+- Architecture reproduction details (encoding, network, training)
+- Paper citations mapped to our implementation
+- Honest accounting of deviations and why
+
 ## Limitations
 
 - No Leela Chess Zero baseline
