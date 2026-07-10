@@ -102,7 +102,7 @@ def load_split_games(records: list, val_frac=0.02):
     return train_games, val_games
 
 
-def train_bin(bin_lower: int, records: list):
+def train_model(bin_lower: int, records: list):
     logger.info(f"=== Full-scale Maia-{bin_lower} ===")
     logger.info(f"  Records: {len(records):,}")
     logger.info(f"  CH={CHANNELS}, BL={BLOCKS}, HIST={HISTORY}, IN={IN_CHANNELS}")
@@ -292,5 +292,5 @@ if __name__ == "__main__":
         records = json.load(f)
     logger.info(f"Loaded {len(records):,} records")
 
-    model, losses, val_losses = train_bin(bin_lower, records)
+    model, losses, val_losses = train_model(bin_lower, records)
     plot_loss_curve(losses, val_losses, bin_lower)
