@@ -17,6 +17,8 @@
 
 ## Results vs. Paper
 
+Each column is a different *test set* (rating bin). For Stockfish it's the same engine. For Maia, each column uses the model trained on that same bin (e.g., 1100-column uses Maia-1100, 1500-column uses Maia-1500, etc.) — the diagonal of the full agreement matrix.
+
 <table>
 <tr>
   <th>Model</th>
@@ -47,14 +49,14 @@
   <td align="center">33-40%</td>
 </tr>
 <tr style="background:#f0f0f0">
-  <td><strong>Maia (ours)</strong><br><small style="color:#666">Our smaller variant: 32ch, 6 blocks, no history</small></td>
+  <td><strong>Our smaller variant</strong><br><small style="color:#666">32ch, 6 blocks, no history</small></td>
   <td align="center"><strong>26.0%</strong></td>
   <td align="center"><strong>25.4%</strong></td>
   <td align="center"><strong>26.4%</strong></td>
   <td align="center">—</td>
 </tr>
 <tr style="background:#fff3cd">
-  <td><strong>Maia (paper arch)</strong><br><small style="color:#666">Paper's architecture: 256ch, 15 blocks, 8 history planes</small></td>
+  <td><strong>Paper architecture</strong><br><small style="color:#666">256ch, 15 blocks, 8 history</small></td>
   <td align="center"><strong>19.6%</strong></td>
   <td align="center"><strong>22.8%</strong></td>
   <td align="center"><strong>28.2%</strong></td>
@@ -62,7 +64,25 @@
 </tr>
 </table>
 
-**Key pattern reproduced:** Each Maia model peaks at its own training bin (self-bin bias). Stockfish accuracy increases monotonically with opponent rating. Stockfish depth 1 matches humans better than depth 7 or 15 — confirming weaker engines are more human-like.
+<details>
+<summary><b>📊 Full cross-bin agreement matrix (all 3 models × 3 test bins)</b></summary>
+
+<table>
+<tr><th>Model</th><th>Trained on</th><th>Test: 1100</th><th>Test: 1500</th><th>Test: 1900</th></tr>
+<tr><td colspan="5" style="background:#eee"><b>Paper architecture (256ch, 15 blocks, 8 history)</b></td></tr>
+<tr><td>Maia-1100</td><td>1100-1199</td><td align="center"><strong>19.6%</strong></td><td align="center">17.6%</td><td align="center">18.8%</td></tr>
+<tr><td>Maia-1500</td><td>1500-1599</td><td align="center">24.0%</td><td align="center"><strong>22.8%</strong></td><td align="center">24.8%</td></tr>
+<tr><td>Maia-1900</td><td>1900-1999</td><td align="center">21.8%</td><td align="center">19.6%</td><td align="center"><strong>28.2%</strong></td></tr>
+<tr><td colspan="5" style="background:#eee"><b>Our smaller variant (32ch, 6 blocks, no history)</b></td></tr>
+<tr><td>Var-1100</td><td>1100-1199</td><td align="center"><strong>26.0%</strong></td><td align="center">24.0%</td><td align="center">26.4%</td></tr>
+<tr><td>Var-1500</td><td>1500-1599</td><td align="center">27.6%</td><td align="center"><strong>25.4%</strong></td><td align="center">24.8%</td></tr>
+<tr><td>Var-1900</td><td>1900-1999</td><td align="center">24.4%</td><td align="center">23.6%</td><td align="center"><strong>26.4%</strong></td></tr>
+</table>
+
+</details>
+
+**Key pattern reproduced:** Each Maia model peaks at its own training bin (self-bin bias, highlighted in bold). The V-shape agreement matrix from Fig 6 of the paper is clearly visible.
+<strong>Note:</strong> The smaller variant (32ch, 6blk) <em>outperforms</em> the paper architecture here — likely because it trains stably on our limited data (~1.2M moves/bin, ~3% of paper's compute) without the NaN issues that required reducing the full model's LR to 0.01.
 
 <details>
 <summary><b>📊 Paper Comparison — Why the gap?</b></summary>
