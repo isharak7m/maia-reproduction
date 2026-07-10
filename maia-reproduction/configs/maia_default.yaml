@@ -1,0 +1,96 @@
+# Default configuration for Maia move-matching model training
+model:
+  type: maia
+  channels: 64
+  blocks: 6
+  use_history: true
+  num_history: 12
+
+training:
+  batch_size: 1024
+  total_steps: 400000
+  lr: 0.1
+  lr_decay_steps: [80000, 200000, 360000]
+  lr_decay_factor: 0.1
+  optimizer: adam
+  shuffle_buffer: 250000
+  subsample_rate: 0.03125  # 1/32
+
+rating_bins: [1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800]
+
+data:
+  data_dir: "data/"
+  pgn_dir: "data/pgn/"
+  parquet_dir: "data/parquet/"
+  min_clock: 30.0
+  skip_first_n_ply: 10
+  train_years: [2017, 2018, 2019]
+  test_months: ["2019-12"]
+  extended_test_ratings: [1000, 2500]
+  block_size: 200000
+  num_train_blocks: 20
+  num_val_blocks: 3
+
+baselines:
+  stockfish_path: "C:/Users/ishar/AppData/Local/Programs/Corsair/Crystal League/binaries/Stockfish/stockfish-windows-x86-64-avx2.exe"
+  stockfish_depths: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+  lc0_path: "lc0"
+  lc0_playouts: 1
+  lc0_checkpoints:
+    - name: "T40.T8.25"
+      path: "weights/t40-t8-25.pb"
+      strength_label: 800
+    - name: "T40.T8.50"
+      path: "weights/t40-t8-50.pb"
+      strength_label: 1000
+    - name: "T40.T8.75"
+      path: "weights/t40-t8-75.pb"
+      strength_label: 1600
+    - name: "T40.T8.100"
+      path: "weights/t40-t8-100.pb"
+      strength_label: 1800
+    - name: "T40.T8.150"
+      path: "weights/t40-t8-150.pb"
+      strength_label: 2200
+    - name: "T40.T8.200"
+      path: "weights/t40-t8-200.pb"
+      strength_label: 2700
+    - name: "T40.T8.400"
+      path: "weights/t40-t8-400.pb"
+      strength_label: 2900
+    - name: "T40.T8.600"
+      path: "weights/t40-t8-600.pb"
+      strength_label: 3200
+
+blunder:
+  win_prob_threshold: 0.10
+  train_window: "2017-04 to 2019-09"
+  test_window: "2019-10"
+  fc:
+    batch_size: 2000
+    total_steps: 1400000
+    lr: 0.002
+    lr_decay_steps: [20000, 1000000, 1300000]
+    lr_decay_factor: 0.1
+  rescnn:
+    batch_size: 2000
+    total_steps: 1400000
+    lr: 0.0002
+    lr_decay_steps: [20000, 1000000, 1300000]
+    lr_decay_factor: 0.1
+
+collective:
+  min_occurrences: 10
+  blunder_rate_threshold: 0.10
+  fc:
+    lr: 0.0001
+  rescnn:
+    lr: 0.00001
+  deep_rescnn:
+    lr: 0.00001
+  eval_interval: 200
+  patience: 64
+
+logging:
+  level: INFO
+  file: "logs/maia.log"

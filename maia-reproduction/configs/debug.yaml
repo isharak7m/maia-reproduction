@@ -1,0 +1,63 @@
+# Debug configuration: tiny data, few steps for quick validation
+model:
+  type: maia
+  channels: 32
+  blocks: 2
+  use_history: false
+  num_history: 4
+
+training:
+  batch_size: 32
+  total_steps: 100
+  lr: 0.01
+  lr_decay_steps: [50]
+  lr_decay_factor: 0.5
+  optimizer: adam
+  shuffle_buffer: 1000
+  subsample_rate: 1.0
+
+rating_bins: [1100, 1500]
+
+data:
+  data_dir: "data/debug/"
+  pgn_dir: "data/debug/pgn/"
+  parquet_dir: "data/debug/parquet/"
+  min_clock: 30.0
+  skip_first_n_ply: 0
+  train_years: [2017]
+  test_months: ["2019-12"]
+  extended_test_ratings: [1000]
+  block_size: 10
+  num_train_blocks: 2
+  num_val_blocks: 1
+  debug: true
+
+baselines:
+  stockfish_path: ""
+  stockfish_depths: [1, 5, 10]
+  lc0_path: ""
+  lc0_playouts: 1
+  lc0_checkpoints: []
+
+blunder:
+  win_prob_threshold: 0.10
+  fc:
+    batch_size: 32
+    total_steps: 50
+    lr: 0.01
+  rescnn:
+    batch_size: 32
+    total_steps: 50
+    lr: 0.001
+
+collective:
+  min_occurrences: 2
+  blunder_rate_threshold: 0.10
+  fc:
+    lr: 0.001
+  rescnn:
+    lr: 0.0001
+
+logging:
+  level: DEBUG
+  file: "logs/debug.log"
