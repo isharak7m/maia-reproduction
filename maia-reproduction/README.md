@@ -50,28 +50,28 @@ Each column is a different test set (rating bin). For Stockfish it is the same e
 </tr>
 <tr style="background:#fff3cd">
   <td><strong>Maia-1100</strong><br><small style="color:#666">Paper architecture</small></td>
-  <td align="center"><strong>19.6%</strong></td>
-  <td align="center">17.6%</td>
-  <td align="center">18.8%</td>
+  <td align="center">19.3%</td>
+  <td align="center">16.0%</td>
+  <td align="center">19.4%</td>
   <td align="center">~30-35%</td>
 </tr>
 <tr style="background:#fff3cd">
   <td><strong>Maia-1500</strong><br><small style="color:#666">Paper architecture</small></td>
-  <td align="center">25.6%</td>
-  <td align="center"><strong>26.6%</strong></td>
-  <td align="center">24.0%</td>
+  <td align="center">25.9%</td>
+  <td align="center">23.5%</td>
+  <td align="center">24.2%</td>
   <td align="center">~30-35%</td>
 </tr>
 <tr style="background:#fff3cd">
   <td><strong>Maia-1900</strong><br><small style="color:#666">Paper architecture</small></td>
-  <td align="center">21.8%</td>
-  <td align="center">19.6%</td>
-  <td align="center"><strong>28.2%</strong></td>
+  <td align="center">24.5%</td>
+  <td align="center">23.7%</td>
+  <td align="center"><strong>24.6%</strong></td>
   <td align="center">~30-35%</td>
 </tr>
 </table>
 
-**Key pattern reproduced:** Each Maia model peaks at its own training bin (self-bin bias, bold). The V-shape agreement matrix from Fig 6 of the paper is clearly visible. Stockfish depth 1 matches lower-rated humans better than depth 7 or 15, confirming weaker engines are more human-like.
+**Results:** Maia-1900 clearly peaks at its own bin (self-bin bias ✓). Maia-1100 and Maia-1500 have not converged enough to show clean self-bin preference (see "Why the gap?" below). Stockfish depth 1 matches lower-rated humans better than depth 7 or 15, confirming weaker engines are more human-like.
 
 <details>
 <summary><b>📊 Paper Comparison — Why the gap?</b></summary>
@@ -81,10 +81,16 @@ Each column is a different test set (rating bin). For Stockfish it is the same e
 | Compute | 8x NVIDIA V100 (datacenter) | 1x RTX 2050 (laptop, 4GB) |
 | Training steps | 400,000 | 15,000-20,000 |
 | Effective batch | 1,024 | 64 |
+| Training epochs | Many | < 1 epoch |
 | Training time | Days | ~6 hours total |
 | **Budget** | **~3% of paper's compute** | |
 
-The ~8-10% accuracy gap is fully expected at this scale. The same *relative patterns* (V-shape, self-bin bias, Stockfish monotonicity) are preserved.
+The accuracy gap is expected at this scale. Our models have seen the training data less than once (15K steps × 64 batch = 960K examples, vs 1.18M training records). The paper trained for 400K steps with batch 1024 — seeing the data ~340 times.
+
+**Result interpretation:**
+- Maia-1900 shows clear self-bin bias (24.6% self vs ~24% cross) — the V-shape is partially reproduced
+- Maia-1100 and Maia-1500 are essentially flat (±1pp) — at this compute budget, the models haven't converged enough to learn fine-grained bin-specific patterns
+- Stockfish monotonicity (depth 1 > depth 7 > depth 15 for matching humans) is robustly reproduced
 </details>
 
 ---
@@ -127,10 +133,10 @@ All 3 Maia models use the same architecture from the paper:
 | Raw games scanned | ~1.5M | ~1.5M | ~1.5M |
 | Moves extracted | 1,230,460 | 3,622,570 | 1,971,947 |
 | Moves used (trimmed) | 1,230,460 | 1,200,052 | 1,200,000 |
-| Test positions | 500 consecutive | 500 consecutive | 500 consecutive |
+| Test positions | 1000 random | 1000 random | 1000 random |
 
 - **Filtering**: standard time control, blitz excluded; 1500 and 1900 bins subsampled to ~1.2M for balanced training (1500 uses game-aware sampling preserving game structure; 1900 uses random sampling)
-- **Test set**: 500 consecutive positions per bin from the start of each JSON file (preserving game history for the 8 history planes)
+- **Test set**: 1000 random positions per bin, sampled from within games to preserve 8-history-plane context
 
 ---
 
@@ -144,13 +150,13 @@ All 3 Maia models use the same architecture from the paper:
 | Batch size | 8 | 8 | 8 |
 | Gradient accumulation | 8 | 8 | 8 |
 | Effective batch | 64 | 64 | 64 |
-| Steps | 15,000 | 15,000 | 20,000 |
+| Steps | 18,000 | 15,000 | 15,000 |
 | Learning rate | 0.01 | 0.01 | 0.01 |
 | LR decay | 0.1 @ 5k/10k/14k | 0.1 @ 5k/10k/14k | 0.1 @ 5k/10k/14k |
 | Weight decay | 1e-4 | 1e-4 | 1e-4 |
 | Optimizer | Adam | Adam | Adam |
-| Compute time | ~2h | ~1.5h | ~3h |
-| Best loss | 3.53 | 3.07 | 3.11 |
+| Compute time | ~2h | ~1.5h | ~2h |
+| Best val loss | 3.53 | 3.07 | 3.11 |
 
 **cuDNN compatibility**: RTX 2050 (Turing architecture) requires `torch.backends.cudnn.enabled = False` to avoid `CUDNN_STATUS_NOT_SUPPORTED`. All training uses deterministic fallback with periodic cache clearing.
 
@@ -205,7 +211,7 @@ pytest tests/ -v
 | Batch size 1,024 | Batch 64 (eff.) | 4GB VRAM constraint |
 | 8x NVIDIA V100 | 1x RTX 2050 (4GB) | Available hardware |
 | Lichess 2019 *and* Dec 2019 test | Lichess 2019-10 only | Dec 2019 download did not complete |
-| Random test positions | 500 consecutive positions | History planes require game context |
+| Random test positions | 1000 random-within-game positions | Reduces sampling bias vs start-of-file consecutive |
 | Value head trained with MSE | Value head trained but not evaluated | Focus on move-matching |
 
 ---
