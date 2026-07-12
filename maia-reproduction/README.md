@@ -57,9 +57,9 @@ Each column is a different test set (rating bin). For Stockfish it is the same e
 </tr>
 <tr style="background:#fff3cd">
   <td><strong>Maia-1500</strong><br><small style="color:#666">Paper architecture</small></td>
+  <td align="center">25.6%</td>
+  <td align="center"><strong>26.6%</strong></td>
   <td align="center">24.0%</td>
-  <td align="center"><strong>22.8%</strong></td>
-  <td align="center">24.8%</td>
   <td align="center">~30-35%</td>
 </tr>
 <tr style="background:#fff3cd">
@@ -126,10 +126,10 @@ All 3 Maia models use the same architecture from the paper:
 | Source | Lichess 2019-10 | Lichess 2019-10 | Lichess 2019-10 |
 | Raw games scanned | ~1.5M | ~1.5M | ~1.5M |
 | Moves extracted | 1,230,460 | 3,622,570 | 1,971,947 |
-| Moves used (trimmed) | 1,230,460 | 1,200,000 | 1,200,000 |
+| Moves used (trimmed) | 1,230,460 | 1,200,052 | 1,200,000 |
 | Test positions | 500 consecutive | 500 consecutive | 500 consecutive |
 
-- **Filtering**: standard time control, blitz excluded; 1500 and 1900 bins randomly subsampled to ~1.2M for balanced training
+- **Filtering**: standard time control, blitz excluded; 1500 and 1900 bins subsampled to ~1.2M for balanced training (1500 uses game-aware sampling preserving game structure; 1900 uses random sampling)
 - **Test set**: 500 consecutive positions per bin from the start of each JSON file (preserving game history for the 8 history planes)
 
 ---
@@ -149,8 +149,8 @@ All 3 Maia models use the same architecture from the paper:
 | LR decay | 0.1 @ 5k/10k/14k | 0.1 @ 5k/10k/14k | 0.1 @ 5k/10k/14k |
 | Weight decay | 1e-4 | 1e-4 | 1e-4 |
 | Optimizer | Adam | Adam | Adam |
-| Compute time | ~2h | ~2h | ~3h |
-| Best loss | 3.79 | 3.65 | 3.76 |
+| Compute time | ~2h | ~1.5h | ~3h |
+| Best loss | 3.53 | 3.07 | 3.11 |
 
 **cuDNN compatibility**: RTX 2050 (Turing architecture) requires `torch.backends.cudnn.enabled = False` to avoid `CUDNN_STATUS_NOT_SUPPORTED`. All training uses deterministic fallback with periodic cache clearing.
 
