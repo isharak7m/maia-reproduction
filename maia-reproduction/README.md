@@ -79,13 +79,13 @@ Each column is a different test set (rating bin). For Stockfish it is the same e
 | | Paper | Ours |
 |:---|---|---|
 | Compute | 8x NVIDIA V100 (datacenter) | 1x RTX 2050 (laptop, 4GB) |
-| Training steps | 400,000 | 15,000-20,000 |
+| Training steps | 400,000 | 15,000-25,000 |
 | Effective batch | 1,024 | 64 |
-| Training epochs | Many | < 1 epoch |
+| Training epochs | Many | 0.8-2.2 epochs |
 | Training time | Days | ~6 hours total |
 | **Budget** | **~3% of paper's compute** | |
 
-The accuracy gap is expected at this scale. Our models have seen the training data less than once (15K steps × 64 batch = 960K examples, vs 1.18M training records). The paper trained for 400K steps with batch 1024 — seeing the data ~340 times.
+The accuracy gap is expected at this scale. The paper trained for 400K steps with batch 1024 — seeing the data ~340 times. Our models see the data 0.8-2.2 times.
 
 **Key improvement:** Maia-1100 was retrained with LR=0.001 (down from 0.01) and 25K steps, eliminating the NaN issue that plagued the first attempt. Best val loss improved from 3.53 → **2.74**, and self-bin accuracy jumped from 19.3% → **32.0%** — matching the paper's range.
 
@@ -229,27 +229,18 @@ maia-reproduction/
 ├── pyproject.toml
 ├── stockfish.exe
 ├── checkpoints/
-│   ├── maia_full_1100_best.pt   # Maia-1100 best validation
-│   ├── maia_full_1100_final.pt  # Maia-1100 final step
-│   ├── maia_full_1100_snap.pt   # Maia-1100 training snapshot
-│   ├── maia_full_1500_best.pt   # Maia-1500 best validation
-│   ├── maia_full_1500_final.pt  # Maia-1500 final step
-│   ├── maia_full_1500_snap.pt   # Maia-1500 training snapshot
-│   ├── maia_full_1900_best.pt   # Maia-1900 best validation
-│   ├── maia_full_1900_final.pt  # Maia-1900 final step
-│   └── maia_full_1900_snap.pt   # Maia-1900 training snapshot
+│   ├── maia_full_1100_best.pt   # Maia-1100 (32.0% self-bin)
+│   ├── maia_full_1500_best.pt   # Maia-1500 (23.5% self-bin)
+│   └── maia_full_1900_best.pt   # Maia-1900 (24.6% self-bin)
 ├── reports/
 │   ├── fig2_accuracy_curves.png
 │   ├── fig6_agreement_matrix.png
 │   ├── paper_comparison.png
-│   ├── loss_full_1100.png
-│   ├── loss_full_1500.png
-│   ├── loss_full_1900.png
 │   ├── stockfish_results.json
 │   └── full_model_results2.json
 ├── scripts/
 │   ├── train_full.py             # Paper-arch training (256ch, 15blk, history)
-│   ├── eval_full2.py             # Paper-arch evaluation (consecutive positions)
+│   ├── eval_full2.py             # Random-within-game evaluation (1000 pos/bin)
 │   ├── stockfish_baselines.py    # Stockfish depth 1/7/15 baselines
 │   ├── paper_figures.py          # Paper-style figure generation
 │   ├── extract_data.py           # PGN extraction pipeline
