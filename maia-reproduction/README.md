@@ -57,9 +57,9 @@ Each column is a different test set (rating bin). For Stockfish it is the same e
 </tr>
 <tr style="background:#fff3cd">
   <td><strong>Maia-1500</strong><br><small style="color:#666">Paper architecture</small></td>
-  <td align="center">25.9%</td>
-  <td align="center">23.5%</td>
-  <td align="center">24.2%</td>
+  <td align="center">31.4%</td>
+  <td align="center"><strong>28.6%</strong></td>
+  <td align="center">27.2%</td>
   <td align="center">~30-35%</td>
 </tr>
 <tr style="background:#fff3cd">
@@ -71,7 +71,7 @@ Each column is a different test set (rating bin). For Stockfish it is the same e
 </tr>
 </table>
 
-**Results:** Maia-1100 and Maia-1900 both peak at their own training bin (self-bin bias ✓, bold), reproducing the paper's core V-shape. Maia-1100 matches the paper's ~32% accuracy after retraining with stable hyperparameters (LR=0.001, 25K steps, 2.2 epochs). Stockfish depth 1 matches humans better than depth 7 or 15, confirming weaker engines are more human-like.
+**Results:** Maia-1100 and Maia-1900 both peak at their own training bin (self-bin bias ✓, bold), reproducing the paper's core V-shape. Maia-1500 improved from 23.5% → 28.6% after retraining with LR=0.001 (25K steps) but still shows a flat profile, likely needing more epochs. Maia-1100 matches the paper's ~32% accuracy. Stockfish depth 1 matches humans better than depth 7 or 15, confirming weaker engines are more human-like.
 
 <details>
 <summary><b>📊 Paper Comparison — Why the gap?</b></summary>
@@ -92,7 +92,7 @@ The accuracy gap is expected at this scale. The paper trained for 400K steps wit
 **Result interpretation:**
 - Maia-1100: strong V-shape ✓ (32.0% self > 28.6% cross > 25.2% cross)
 - Maia-1900: V-shape ✓ (24.6% self > 24.5% vs 23.7%)
-- Maia-1500: flat (~24%) — this bin has the most diverse play styles, requiring more compute to converge
+- Maia-1500: mostly flat (28.6% self vs 31.4% on 1100) — this bin has the most diverse play styles, requiring more compute to converge
 - Stockfish monotonicity (depth 1 matches humans best) is robustly reproduced
 </details>
 
@@ -153,14 +153,14 @@ All 3 Maia models use the same architecture from the paper:
 | Batch size | 8 | 8 | 8 |
 | Gradient accumulation | 8 | 8 | 8 |
 | Effective batch | 64 | 64 | 64 |
-| Steps | 25,000 | 15,000 | 15,000 |
-| Learning rate | 0.001 | 0.01 | 0.01 |
-| LR decay | 0.1 @ 15k/20k | 0.1 @ 5k/10k/14k | 0.1 @ 5k/10k/14k |
+| Steps | 25,000 | 25,000 | 15,000 |
+| Learning rate | 0.001 | 0.001 | 0.01 |
+| LR decay | 0.1 @ 15k/20k | 0.1 @ 15k/20k | 0.1 @ 5k/10k/14k |
 | Weight decay | 1e-4 | 1e-4 | 1e-4 |
-| Grad clip | 1.0 | 5.0 | 5.0 |
+| Grad clip | 1.0 | 1.0 | 5.0 |
 | Optimizer | Adam | Adam | Adam |
-| Compute time | ~2.2h | ~1.5h | ~2h |
-| Best val loss | **2.74** | 3.07 | 3.11 |
+| Compute time | ~2.2h | ~2.6h | ~2h |
+| Best val loss | **2.74** | 2.82 | 3.11 |
 
 **cuDNN compatibility**: RTX 2050 (Turing architecture) requires `torch.backends.cudnn.enabled = False` to avoid `CUDNN_STATUS_NOT_SUPPORTED`. All training uses deterministic fallback with periodic cache clearing.
 
@@ -211,7 +211,7 @@ pytest tests/ -v
 | Paper | Ours | Reason |
 |:------|:------|:-------|
 | 9 rating bins (1100-1900) | 3 bins (1100, 1500, 1900) | Limited compute |
-| 400K training steps | 15K-20K steps | 4GB GPU / laptop thermal limits |
+| 400K training steps | 15K-25K steps | 4GB GPU / laptop thermal limits |
 | Batch size 1,024 | Batch 64 (eff.) | 4GB VRAM constraint |
 | 8x NVIDIA V100 | 1x RTX 2050 (4GB) | Available hardware |
 | First 1100 attempt (LR=0.01) | Retrained 1100 (LR=0.001, 25K steps) | Original went NaN at step 16K |
@@ -230,7 +230,7 @@ maia-reproduction/
 ├── stockfish.exe
 ├── checkpoints/
 │   ├── maia_full_1100_best.pt   # Maia-1100 (32.0% self-bin)
-│   ├── maia_full_1500_best.pt   # Maia-1500 (23.5% self-bin)
+│   ├── maia_full_1500_best.pt   # Maia-1500 (28.6% self-bin)
 │   └── maia_full_1900_best.pt   # Maia-1900 (24.6% self-bin)
 ├── reports/
 │   ├── fig2_accuracy_curves.png
