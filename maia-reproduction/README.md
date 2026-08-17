@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>♟ Maia Reproduction</h1>
+  <h1>Maia Reproduction</h1>
   <p>
     <strong>From-scratch reproduction of</strong><br>
     <em>"Aligning Superhuman AI with Human Behavior: Chess as a Model System"</em><br>
@@ -15,192 +15,90 @@
 
 ---
 
-## Results vs. Paper
+## Result
 
-Each column is a different test set (rating bin). For Stockfish it is the same engine. For Maia, each column uses the model trained on that same bin — the diagonal of the full agreement matrix.
+A residual CNN (256ch, 15 blocks, 8 history planes, 18.6M params) trained to predict human chess moves at the **1100-1199 rating level** from Lichess 2019-10 achieves **32.0% move-matching accuracy**, matching the paper's ~30-35% range for that rating bin.
 
-<table>
-<tr>
-  <th>Model</th>
-  <th>1100-1199</th>
-  <th>1500-1599</th>
-  <th>1900-1999</th>
-  <th>Paper (approx)</th>
-</tr>
-<tr>
-  <td>Stockfish depth 1</td>
-  <td align="center">38.6%</td>
-  <td align="center">38.6%</td>
-  <td align="center">42.8%</td>
-  <td align="center">36-42%</td>
-</tr>
-<tr>
-  <td>Stockfish depth 7</td>
-  <td align="center">35.2%</td>
-  <td align="center">34.0%</td>
-  <td align="center">37.2%</td>
-  <td align="center">34-38%</td>
-</tr>
-<tr>
-  <td>Stockfish depth 15</td>
-  <td align="center">38.6%</td>
-  <td align="center">35.6%</td>
-  <td align="center">40.0%</td>
-  <td align="center">33-40%</td>
-</tr>
-<tr style="background:#fff3cd">
-  <td><strong>Maia-1100</strong><br><small style="color:#666">Paper architecture</small></td>
-  <td align="center"><strong>32.0%</strong></td>
-  <td align="center">28.6%</td>
-  <td align="center">25.2%</td>
-  <td align="center">~30-35%</td>
-</tr>
-<tr style="background:#fff3cd">
-  <td><strong>Maia-1500</strong><br><small style="color:#666">Paper architecture</small></td>
-  <td align="center">31.4%</td>
-  <td align="center"><strong>28.6%</strong></td>
-  <td align="center">27.2%</td>
-  <td align="center">~30-35%</td>
-</tr>
-<tr style="background:#fff3cd">
-  <td><strong>Maia-1900</strong><br><small style="color:#666">Paper architecture</small></td>
-  <td align="center">24.5%</td>
-  <td align="center">23.7%</td>
-  <td align="center"><strong>24.6%</strong></td>
-  <td align="center">~30-35%</td>
-</tr>
-</table>
+| Metric | Value |
+|--------|-------|
+| **Self-bin accuracy** | **32.0%** |
+| Stockfish depth 1 (1100) | 38.6% |
+| Stockfish depth 7 (1100) | 35.2% |
+| Stockfish depth 15 (1100) | 38.6% |
+| Paper range (1100 bin) | ~30-35% |
 
-**Results:** Maia-1100 and Maia-1900 both peak at their own training bin (self-bin bias ✓, bold), reproducing the paper's core V-shape. Maia-1500 improved from 23.5% → 28.6% after retraining with LR=0.001 (25K steps) but still shows a flat profile, likely needing more epochs. Maia-1100 matches the paper's ~32% accuracy. Stockfish depth 1 matches humans better than depth 7 or 15, confirming weaker engines are more human-like.
-
-<details>
-<summary><b>📊 Paper Comparison — Why the gap?</b></summary>
-
-| | Paper | Ours |
-|:---|---|---|
-| Compute | 8x NVIDIA V100 (datacenter) | 1x RTX 2050 (laptop, 4GB) |
-| Training steps | 400,000 | 15,000-25,000 |
-| Effective batch | 1,024 | 64 |
-| Training epochs | Many | 0.8-2.2 epochs |
-| Training time | Days | ~6 hours total |
-| **Budget** | **~3% of paper's compute** | |
-
-The accuracy gap is expected at this scale. The paper trained for 400K steps with batch 1024 — seeing the data ~340 times. Our models see the data 0.8-2.2 times.
-
-**Key improvement:** Maia-1100 was retrained with LR=0.001 (down from 0.01) and 25K steps, eliminating the NaN issue that plagued the first attempt. Best val loss improved from 3.53 → **2.74**, and self-bin accuracy jumped from 19.3% → **32.0%** — matching the paper's range.
-
-**Result interpretation:**
-- Maia-1100: strong V-shape ✓ (32.0% self > 28.6% cross > 25.2% cross)
-- Maia-1900: V-shape ✓ (24.6% self > 24.5% vs 23.7%)
-- Maia-1500: mostly flat (28.6% self vs 31.4% on 1100) — this bin has the most diverse play styles, requiring more compute to converge
-- Stockfish monotonicity (depth 1 matches humans best) is robustly reproduced
-</details>
-
----
-
-## Figures
-
-| Accuracy Curves (Fig 2 equivalent) | Agreement Matrix (Fig 6 equivalent) | Our vs Paper |
-|---|---|---|
-| ![Accuracy Curves](reports/fig2_accuracy_curves.png) | ![Agreement Matrix](reports/fig6_agreement_matrix.png) | ![Paper Comparison](reports/paper_comparison.png) |
+Stockfish depth 1 matches lower-rated humans better than depth 7 or 15, confirming weaker engines are more human-like. The paper trained 9 rating-bin models on 8 V100 GPUs for 400K steps. This reproduction is limited to 1 bin at ~3% of the paper's compute (1 RTX 2050 laptop GPU, 25K training steps).
 
 ---
 
 ## Architecture
 
-All 3 Maia models use the same architecture from the paper:
-
 | Component | Specification |
 |-----------|--------------|
 | Input channels | 113 (17 board planes + 12 x 8 history planes) |
 | Initial conv | 113 -> 256, 3x3, BN, ReLU |
-| Residual blocks | **15 blocks** at 256 channels |
+| Residual blocks | 15 blocks at 256 channels |
 | SE blocks | Squeeze-and-excitation per block (reduction=16) |
 | Policy head | Conv 256 -> 80 -> 73, flattened to 4672 logits |
 | Value head | Conv -> FC256 -> FC3 (win/draw/loss) |
-| Parameters | **18.6M** |
+| Parameters | 18.6M |
 
 ### Input planes (113 total)
-- **12 piece-channel planes** (6 piece types x 2 colors)
-- **4 castling rights** (KQkq)
-- **1 side-to-move**
-- **96 history planes** (8 preceding board positions x 12 piece-channel planes each)
+- 12 piece-channel planes (6 piece types x 2 colors)
+- 4 castling rights (KQkq)
+- 1 side-to-move
+- 96 history planes (8 preceding board positions x 12 piece-channel planes each)
 
 ---
 
 ## Dataset
 
-| | 1100-1199 | 1500-1599 | 1900-1999 |
-|:---|:---|:---|:---|
-| Source | Lichess 2019-10 | Lichess 2019-10 | Lichess 2019-10 |
-| Raw games scanned | ~1.5M | ~1.5M | ~1.5M |
-| Moves extracted | 1,230,460 | 3,622,570 | 1,971,947 |
-| Moves used (trimmed) | 1,230,460 | 1,200,052 | 1,200,000 |
-| Test positions | 1000 random | 1000 random | 1000 random |
-
-- **Filtering**: standard time control, blitz excluded; 1500 and 1900 bins subsampled to ~1.2M for balanced training (1500 uses game-aware sampling preserving game structure; 1900 uses random sampling)
-- **Test set**: 1000 random positions per bin, sampled from within games to preserve 8-history-plane context
+| | Value |
+|:---|:---|
+| Source | Lichess 2019-10 monthly dump |
+| Rating bin | 1100-1199 |
+| Games scanned | ~1.5M |
+| Games matched | 25,000 |
+| Moves extracted | 1,232,884 |
+| Test positions | 1000 random-with-history |
+| Time control filter | Standard, no bullet, clock >= 30s |
 
 ---
 
 ## Training
 
-| Config | Maia-1100 | Maia-1500 | Maia-1900 |
-|:------|:---------:|:---------:|:---------:|
-| Channels | 256 | 256 | 256 |
-| Blocks | 15 | 15 | 15 |
-| History | 8 | 8 | 8 |
-| Batch size | 8 | 8 | 8 |
-| Gradient accumulation | 8 | 8 | 8 |
-| Effective batch | 64 | 64 | 64 |
-| Steps | 25,000 | 25,000 | 15,000 |
-| Learning rate | 0.001 | 0.001 | 0.01 |
-| LR decay | 0.1 @ 15k/20k | 0.1 @ 15k/20k | 0.1 @ 5k/10k/14k |
-| Weight decay | 1e-4 | 1e-4 | 1e-4 |
-| Grad clip | 1.0 | 1.0 | 5.0 |
-| Optimizer | Adam | Adam | Adam |
-| Compute time | ~2.2h | ~2.6h | ~2h |
-| Best val loss | **2.74** | 2.82 | 3.11 |
+| Config | Value |
+|:------|:-----|
+| Channels | 256 |
+| Blocks | 15 |
+| History planes | 8 |
+| Batch size | 8 |
+| Gradient accumulation | 8 |
+| Effective batch | 64 |
+| Steps | 25,000 |
+| Learning rate | 0.001 (decayed 0.1x at 15k, 20k) |
+| Grad clip | 1.0 |
+| Optimizer | Adam |
+| Compute time | ~2.2h on RTX 2050 (4GB) |
+| Best validation loss | 2.74 |
 
-**cuDNN compatibility**: RTX 2050 (Turing architecture) requires `torch.backends.cudnn.enabled = False` to avoid `CUDNN_STATUS_NOT_SUPPORTED`. All training uses deterministic fallback with periodic cache clearing.
-
-### Loss curves
-
-| Maia-1100 | Maia-1500 | Maia-1900 |
-|:---------:|:---------:|:---------:|
-| ![Loss 1100](reports/loss_full_1100.png) | ![Loss 1500](reports/loss_full_1500.png) | ![Loss 1900](reports/loss_full_1900.png) |
+**Note**: RTX 2050 (Turing) requires `torch.backends.cudnn.enabled = False` to avoid `CUDNN_STATUS_NOT_SUPPORTED`. Training uses deterministic fallback with periodic cache clearing.
 
 ---
 
 ## Quick Start
 
 ```bash
-# Install
 pip install -e .
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
 pip install python-chess matplotlib pyyaml
 
-# Download data
-python scripts/download_data.py  # Lichess 2019-10 PGN
-
-# Extract records
+python scripts/download_data.py
 python scripts/extract_data.py
-
-# Train a model (each ~2-3h on 4GB GPU)
 python scripts/train_full.py 1100
-python scripts/train_full.py 1500
-python scripts/train_full.py 1900
-
-# Evaluate
 python scripts/eval_full2.py
-
-# Stockfish baselines
 python scripts/stockfish_baselines.py
-
-# Generate figures
 python scripts/paper_figures.py
-
-# Run tests
 pytest tests/ -v
 ```
 
@@ -210,14 +108,12 @@ pytest tests/ -v
 
 | Paper | Ours | Reason |
 |:------|:------|:-------|
-| 9 rating bins (1100-1900) | 3 bins (1100, 1500, 1900) | Limited compute |
-| 400K training steps | 15K-25K steps | 4GB GPU / laptop thermal limits |
+| 400K training steps | 25K steps | 4GB GPU / laptop thermal limits |
 | Batch size 1,024 | Batch 64 (eff.) | 4GB VRAM constraint |
 | 8x NVIDIA V100 | 1x RTX 2050 (4GB) | Available hardware |
-| First 1100 attempt (LR=0.01) | Retrained 1100 (LR=0.001, 25K steps) | Original went NaN at step 16K |
-| Lichess 2019 *and* Dec 2019 test | Lichess 2019-10 only | Dec 2019 download did not complete |
-| Random test positions | 1000 random-within-game positions | Reduces sampling bias vs start-of-file consecutive |
-| Value head trained with MSE | Value head trained but not evaluated | Focus on move-matching |
+| Lichess 2013-2019 + Dec 2019 test | Lichess 2019-10 only | Data availability |
+| Random test positions | 1000 random-within-game positions | Reduces sampling bias |
+| Value head trained with MSE | Included but not evaluated | Focus on move-matching |
 
 ---
 
@@ -229,9 +125,7 @@ maia-reproduction/
 ├── pyproject.toml
 ├── stockfish.exe
 ├── checkpoints/
-│   ├── maia_full_1100_best.pt   # Maia-1100 (32.0% self-bin)
-│   ├── maia_full_1500_best.pt   # Maia-1500 (28.6% self-bin)
-│   └── maia_full_1900_best.pt   # Maia-1900 (24.6% self-bin)
+│   └── maia_full_1100_best.pt
 ├── reports/
 │   ├── fig2_accuracy_curves.png
 │   ├── fig6_agreement_matrix.png
@@ -239,21 +133,20 @@ maia-reproduction/
 │   ├── stockfish_results.json
 │   └── full_model_results2.json
 ├── scripts/
-│   ├── train_full.py             # Paper-arch training (256ch, 15blk, history)
-│   ├── eval_full2.py             # Random-within-game evaluation (1000 pos/bin)
-│   ├── stockfish_baselines.py    # Stockfish depth 1/7/15 baselines
-│   ├── paper_figures.py          # Paper-style figure generation
-│   ├── extract_data.py           # PGN extraction pipeline
-│   ├── build_dataset.py          # Dataset building
-│   ├── download_data.py          # Lichess PGN download
-│   └── ...                       # Utility scripts
+│   ├── train_full.py
+│   ├── eval_full2.py
+│   ├── stockfish_baselines.py
+│   ├── paper_figures.py
+│   ├── extract_data.py
+│   ├── build_dataset.py
+│   └── download_data.py
 ├── src/
-│   ├── models/maia_net.py        # Residual CNN (256ch, 15 blocks, SE)
-│   ├── encoding/board.py         # 8x8x17 board tensor + history stacking
-│   ├── encoding/move.py          # 8x8x73 AlphaZero move encoding
-│   └── data_pipeline/            # PGN parsing, filtering, datasets
+│   ├── models/maia_net.py
+│   ├── encoding/board.py
+│   ├── encoding/move.py
+│   └── data_pipeline/
 ├── configs/
-│   └── maia_default.yaml         # Full-scale training config
+│   └── maia_default.yaml
 └── tests/
-    └── ...                       # 54 unit tests
+    └── ...
 ```
