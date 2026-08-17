@@ -17,17 +17,31 @@
 
 ## Result
 
-A residual CNN (256ch, 15 blocks, 8 history planes, 18.6M params) trained to predict human chess moves at the **1100-1199 rating level** from Lichess 2019-10 achieves **32.0% move-matching accuracy**, matching the paper's ~30-35% range for that rating bin.
+A residual CNN (256ch, 15 blocks, 8 history planes, 18.6M params) trained to predict human chess moves at the **1100-1199 rating level** from Lichess 2019-10 achieves **32.0% move-matching accuracy** on its own rating bin, matching the paper's ~30-35% range.
 
-| Metric | Value |
-|--------|-------|
-| **Self-bin accuracy** | **32.0%** |
-| Stockfish depth 1 (1100) | 38.6% |
-| Stockfish depth 7 (1100) | 35.2% |
-| Stockfish depth 15 (1100) | 38.6% |
-| Paper range (1100 bin) | ~30-35% |
+### Self-bin bias (V-shape pattern)
 
-Stockfish depth 1 matches lower-rated humans better than depth 7 or 15, confirming weaker engines are more human-like. The paper trained 9 rating-bin models on 8 V100 GPUs for 400K steps. This reproduction is limited to 1 bin at ~3% of the paper's compute (1 RTX 2050 laptop GPU, 25K training steps).
+The core finding of the Maia paper: a model trained on a specific rating bin performs **best on that bin** and worse on higher-rated bins, rather than becoming a stronger overall chess predictor.
+
+| Evaluated on | Accuracy |
+|:-------------|:---------|
+| **1100-1199 (self-bin)** | **32.0%** |
+| 1500-1599 | 28.6% |
+| 1900-1999 | 25.2% |
+
+The model peaks at its own training bin (32.0% > 28.6% > 25.2%), confirming it learned to predict **rating-specific moves** rather than general chess strength.
+
+### Stockfish baselines (1100-1199 positions)
+
+| Engine | Depth | Accuracy |
+|:-------|:------|:---------|
+| Stockfish | 1 | 38.6% |
+| Stockfish | 7 | 35.2% |
+| Stockfish | 15 | 38.6% |
+
+Weaker engines (depth 1) match lower-rated humans better than stronger ones, consistent with the paper's finding that engine strength and human-likeness are misaligned.
+
+> The paper trained 9 rating-bin models on 8 V100 GPUs for 400K steps. This reproduction is limited to 1 bin at ~3% of the paper's compute (1 RTX 2050 laptop GPU, 25K training steps).
 
 ---
 
