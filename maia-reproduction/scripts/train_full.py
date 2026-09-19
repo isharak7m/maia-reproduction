@@ -28,12 +28,13 @@ IN_CHANNELS = 17 + 12 * HISTORY
 BATCH_SIZE = 8
 GRAD_ACCUM = 8
 EFFECTIVE_BS = BATCH_SIZE * GRAD_ACCUM
+WEIGHT_DECAY = 1e-4
+CHECKPOINT_DIR = "checkpoints"
+
 TOTAL_STEPS = 15000
 LR = 0.01
 LR_DECAY_STEPS = [5000, 10000, 14000]
 LR_DECAY = 0.1
-WEIGHT_DECAY = 1e-4
-CHECKPOINT_DIR = "checkpoints"
 # Retry CUDA detection (OS can block GPU after crash)
 def _detect_device():
     for attempt in range(3):

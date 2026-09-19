@@ -84,14 +84,20 @@ def compute_accuracy(model, items):
     return correct
 
 
+from pathlib import Path
+
 def main():
     results = {}
     for b in BINS:
+        ckpt = f"checkpoints/maia_full_{b}_best.pt"
+        if not Path(ckpt).exists():
+            print(f"Bin {b}: no checkpoint found, skipping")
+            continue
+
         items = load_random_positions(b, NUM_POSITIONS)
         n = len(items)
         print(f"Bin {b}: {n} random positions across {len(get_bin_data(b))} games")
 
-        ckpt = f"checkpoints/maia_full_{b}_best.pt"
         model = MaiaNet(in_channels=IN_CH, channels=256, blocks=15)
         model.load_state_dict(torch.load(ckpt, map_location=DEVICE))
         model = model.to(DEVICE)
@@ -118,6 +124,8 @@ def main():
     print("\n=== FINAL RESULTS (self-bin bold) ===")
     for b in BINS:
         sb = str(b)
+        if sb not in results:
+            continue
         r = results[sb]
         self_acc = r["full_maia"]["accuracy"] * 100
         accs = [self_acc]

@@ -1,7 +1,7 @@
 <div align="center">
-  <h1>Maia Reproduction</h1>
+  <h1>Maia Partial Reproduction</h1>
   <p>
-    <strong>From-scratch reproduction of</strong><br>
+    <strong>Partial reproduction of</strong><br>
     <em>"Aligning Superhuman AI with Human Behavior: Chess as a Model System"</em><br>
     McIlroy-Young et al., KDD 2020
   </p>
@@ -17,21 +17,21 @@
 
 ## Result
 
-A residual CNN (256ch, 15 blocks, 8 history planes, 18.6M params) trained to predict human chess moves at the **1100-1199 rating level** from Lichess 2019-10 achieves **32.0% move-matching accuracy** on its own rating bin, matching the paper's ~30-35% range.
+A residual CNN (256ch, 15 blocks, 8 history planes, 18.6M params) trained to predict human chess moves at the **1100-1199 rating level** from Lichess 2019-10 achieves **32.0% move-matching accuracy** on its own rating bin (1,000 test positions, roughly ±3 points at 95% confidence). This is below the paper's reported 46-52%, which is expected given the much smaller training set and compute budget.
 
-### Self-bin bias (V-shape pattern)
+### Self-bin bias (unimodal peak)
 
 The core finding of the Maia paper: a model trained on a specific rating bin performs **best on that bin** and worse on higher-rated bins, rather than becoming a stronger overall chess predictor.
 
-| Evaluated on | Accuracy |
-|:-------------|:---------|
-| **1100-1199 (self-bin)** | **32.0%** |
-| 1500-1599 | 28.6% |
-| 1900-1999 | 25.2% |
+| Evaluated on | Accuracy | 95% CI |
+|:-------------|:---------|:-------|
+| **1100-1199 (self-bin)** | **32.0%** | ±3.0% |
+| 1500-1599 | 28.6% | ±2.8% |
+| 1900-1999 | 25.2% | ±2.7% |
 
-The model peaks at its own training bin (32.0% > 28.6% > 25.2%), confirming it learned to predict **rating-specific moves** rather than general chess strength.
+The model peaks at its own training bin (32.0% > 28.6% > 25.2%), consistent with learning **rating-specific moves** rather than general chess strength. Note that the gaps between bins (3.4 and 6.8 percentage points) are barely outside the confidence intervals, so these differences should be interpreted cautiously.
 
-### Stockfish baselines (1100-1199 positions)
+### Stockfish baselines (1100-1199 positions, same 1,000 positions as Maia eval)
 
 | Engine | Depth | Accuracy |
 |:-------|:------|:---------|
@@ -39,9 +39,9 @@ The model peaks at its own training bin (32.0% > 28.6% > 25.2%), confirming it l
 | Stockfish | 7 | 35.2% |
 | Stockfish | 15 | 38.6% |
 
-Weaker engines (depth 1) match lower-rated humans better than stronger ones, consistent with the paper's finding that engine strength and human-likeness are misaligned.
+**Note**: The identical accuracy for depth 1 and depth 15 (38.6%) is suspicious and may indicate an issue with the Stockfish binary or evaluation setup (e.g., depth parameter not being applied correctly, or the bundled Stockfish version not respecting depth limits). This should be re-run with a freshly downloaded Stockfish to verify. Additionally, Stockfish outscoring the Maia model (38.6% vs 32.0%) contradicts the paper's finding that Maia predicts human moves better than Stockfish. This likely points to undertraining of our model given the limited compute.
 
-> The paper trained 9 rating-bin models on 8 V100 GPUs for 400K steps. This reproduction is limited to 1 bin at ~3% of the paper's compute (1 RTX 2050 laptop GPU, 25K training steps).
+> The paper trained 9 rating-bin models on 8 V100 GPUs for 400K steps with batch size 1,024 (~410M training samples, ~12M games per bin). This reproduction is limited to 1 bin using ~0.2% of the paper's training samples (1 RTX 2050 laptop GPU, 15K steps × batch 64 = 960K samples, 25K games).
 
 ---
 
@@ -76,6 +76,7 @@ Weaker engines (depth 1) match lower-rated humans better than stronger ones, con
 | Moves extracted | 1,232,884 |
 | Test positions | 1000 random-with-history |
 | Time control filter | Standard, no bullet, clock >= 30s |
+| Train/test split | **Potential leakage**: training splits 98/2 by game (seed 42), but eval samples from all games without excluding training games |
 
 ---
 
@@ -89,8 +90,8 @@ Weaker engines (depth 1) match lower-rated humans better than stronger ones, con
 | Batch size | 8 |
 | Gradient accumulation | 8 |
 | Effective batch | 64 |
-| Steps | 25,000 |
-| Learning rate | 0.001 (decayed 0.1x at 15k, 20k) |
+| Steps | 15,000 |
+| Learning rate | 0.01 (decayed 0.1x at 5k, 10k, 14k) |
 | Grad clip | 1.0 |
 | Optimizer | Adam |
 | Compute time | ~2.2h on RTX 2050 (4GB) |
@@ -111,7 +112,13 @@ python scripts/download_data.py
 python scripts/extract_data.py
 python scripts/train_full.py 1100
 python scripts/eval_full2.py
+
+# Stockfish baselines (requires Stockfish installed or in PATH)
+# Windows: https://stockfishchess.org/download/
+# Linux: sudo apt install stockfish
+# macOS: brew install stockfish
 python scripts/stockfish_baselines.py
+
 python scripts/paper_figures.py
 pytest tests/ -v
 ```
@@ -122,9 +129,11 @@ pytest tests/ -v
 
 | Paper | Ours | Reason |
 |:------|:------|:-------|
-| 400K training steps | 25K steps | 4GB GPU / laptop thermal limits |
+| 400K training steps | 15K steps | 4GB GPU / laptop thermal limits |
 | Batch size 1,024 | Batch 64 (eff.) | 4GB VRAM constraint |
 | 8x NVIDIA V100 | 1x RTX 2050 (4GB) | Available hardware |
+| ~12M games per rating bin | 25K games | Data availability |
+| ~6 residual blocks | 15 blocks | Paper uses smaller architecture |
 | Lichess 2013-2019 + Dec 2019 test | Lichess 2019-10 only | Data availability |
 | Random test positions | 1000 random-within-game positions | Reduces sampling bias |
 | Value head trained with MSE | Included but not evaluated | Focus on move-matching |
@@ -137,7 +146,6 @@ pytest tests/ -v
 maia-reproduction/
 ├── README.md
 ├── pyproject.toml
-├── stockfish.exe
 ├── checkpoints/
 │   └── maia_full_1100_best.pt
 ├── reports/
@@ -164,3 +172,19 @@ maia-reproduction/
 └── tests/
     └── ...
 ```
+
+---
+
+## Limitations
+
+This is a **partial reproduction** with several important limitations:
+
+1. **Training set size**: We used 25K games per bin vs. the paper's ~12M games per bin (0.2% of the paper's data).
+2. **Compute budget**: We used ~0.2% of the paper's training samples (960K vs. ~410M).
+3. **Architecture difference**: We used 15 residual blocks vs. the paper's ~6 blocks, resulting in a larger model (18.6M params).
+4. **Accuracy gap**: Our model achieves 32.0% vs. the paper's 46-52% move-matching accuracy.
+5. **Stockfish baseline issue**: The Stockfish evaluation shows suspicious results (depth 1 = depth 15 accuracy) that need verification with a freshly downloaded Stockfish binary.
+6. **Stockfish outperforms model**: Our model is outperformed by Stockfish, contradicting the paper's finding.
+7. **Confidence intervals**: With only 1,000 test positions, the confidence intervals (±3%) are large relative to the differences between bins.
+8. **Single bin**: We only trained on the 1100-1199 bin, while the paper trained on 9 bins.
+9. **Train/test leakage**: The evaluation script samples test positions from all games, including those used in training. Training splits 98/2 by game internally, but the eval does not exclude training games. This may inflate reported accuracy.

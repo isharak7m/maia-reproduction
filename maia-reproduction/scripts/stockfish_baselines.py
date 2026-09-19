@@ -4,29 +4,44 @@ import chess
 import chess.engine
 import json
 import random
+import shutil
 import sys
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-STOCKFISH_PATH = "stockfish.exe"
+STOCKFISH_PATH = shutil.which("stockfish") or "stockfish.exe"
 DEPTHS = [1, 7, 15]
-NUM_POSITIONS = 500
+NUM_POSITIONS = 1000
 BINS = [1100, 1500, 1900]
 RANDOM_SEED = 42
 OUTPUT = "reports/stockfish_results.json"
 
 
 def load_positions(bin_lower: int, n: int):
+    from collections import defaultdict
     trimmed = Path(f"data/parquet/records_{bin_lower}_trimmed.json")
     default = Path(f"data/parquet/records_{bin_lower}.json")
     path = trimmed if trimmed.exists() else default
     with open(path) as f:
         records = json.load(f)
-    random.seed(RANDOM_SEED + bin_lower)
-    sampled = random.sample(records, min(n, len(records)))
-    return [(rec["fen"], rec["move_uci"]) for rec in sampled]
+    games = defaultdict(list)
+    for r in records:
+        games[r["game_id"]].append(r)
+    for gid in games:
+        games[gid].sort(key=lambda x: x["ply"])
+    valid = {gid: g for gid, g in games.items() if len(g) > 8}
+    game_ids = list(valid.keys())
+    random.seed(42 + bin_lower)
+    HISTORY = 8
+    items = []
+    while len(items) < n and game_ids:
+        gid = random.choice(game_ids)
+        g = valid[gid]
+        idx = random.randint(HISTORY, len(g) - 1)
+        items.append((g[idx]["fen"], g[idx]["move_uci"]))
+    return items
 
 
 def evaluate_sf(engine, fens_and_moves: list, depth: int) -> dict:
@@ -50,6 +65,15 @@ def main():
     for b in BINS:
         positions[b] = load_positions(b, NUM_POSITIONS)
         print(f"  Bin {b}: {len(positions[b])} positions")
+
+    # Check Stockfish is available
+    if not Path(STOCKFISH_PATH).exists():
+        print(f"\nError: Stockfish not found at {STOCKFISH_PATH}")
+        print("Install Stockfish and ensure it's in your PATH, or place stockfish.exe in the project root.")
+        print("Windows: https://stockfishchess.org/download/")
+        print("Linux: sudo apt install stockfish")
+        print("macOS: brew install stockfish")
+        sys.exit(1)
 
     print(f"\nStarting Stockfish ({STOCKFISH_PATH})...")
     engine = chess.engine.SimpleEngine.popen_uci(STOCKFISH_PATH)

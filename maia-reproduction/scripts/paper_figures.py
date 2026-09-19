@@ -28,6 +28,8 @@ def load_data():
 
     for b in BINS:
         sb = str(b)
+        if sb not in maia:
+            continue
         accs = []
         for tb in BINS:
             key = "full_maia" if tb == b else f"full_maia_on_{tb}"
@@ -82,8 +84,10 @@ def fig6_agreement_matrix():
     with open("reports/full_model_results2.json") as f:
         maia = json.load(f)
 
-    labels = ["SF d=1", "SF d=7", "SF d=15",
-              "Maia-1100", "Maia-1500", "Maia-1900"]
+    labels = ["SF d=1", "SF d=7", "SF d=15"]
+    for b in BINS:
+        if str(b) in maia:
+            labels.append(f"Maia-{b}")
     n = len(labels)
     matrix = np.zeros((n, 3))
 
@@ -91,12 +95,16 @@ def fig6_agreement_matrix():
         for i, d in enumerate([1, 7, 15]):
             val = sf.get(str(b), {}).get(str(d), {}).get("accuracy", 0)
             matrix[i][j] = val * 100
-    for i, b in enumerate(BINS):
+    row = 3
+    for b in BINS:
         sb = str(b)
+        if sb not in maia:
+            continue
         for j, tb in enumerate(BINS):
             key = "full_maia" if tb == b else f"full_maia_on_{tb}"
             val = maia.get(sb, {}).get(key, {}).get("accuracy", 0)
-            matrix[3 + i][j] = val * 100
+            matrix[row][j] = val * 100
+        row += 1
 
     fig, ax = plt.subplots(figsize=(7, 5))
     im = ax.imshow(matrix, cmap="YlOrRd", vmin=0, vmax=50, aspect="auto")
@@ -119,16 +127,21 @@ def fig6_agreement_matrix():
 def plot_paper_comparison():
     with open("reports/full_model_results2.json") as f:
         maia = json.load(f)
+    avail = [b for b in BINS if str(b) in maia]
+    if not avail:
+        print("No Maia results to plot")
+        return
     self_bin_accs = [maia.get(str(b), {}).get("full_maia", {}).get("accuracy", 0) * 100
-                     for b in BINS]
+                     for b in avail]
 
     fig, ax = plt.subplots(figsize=(7, 4))
-    x = np.arange(3)
+    x = np.arange(len(avail))
     width = 0.35
     ax.bar(x, self_bin_accs, width, label="Our Maia (paper arch)", color="#ff7f0e")
-    ax.bar(x + width, [32, 35, 35], width, label="Paper (approx peak)", color="#1f77b4", alpha=0.7)
+    paper_peak = [32, 35, 35][:len(avail)]
+    ax.bar(x + width, paper_peak, width, label="Paper (approx peak)", color="#1f77b4", alpha=0.7)
     ax.set_xticks(x + width / 2)
-    ax.set_xticklabels(BIN_LABELS, fontsize=10)
+    ax.set_xticklabels([BIN_LABELS[BINS.index(b)] for b in avail], fontsize=10)
     ax.set_ylabel("Top-1 Move-Matching Accuracy (%)", fontsize=11)
     ax.set_title("Our Results vs. Maia Paper", fontsize=12, fontweight="bold")
     ax.legend(fontsize=10)
@@ -150,8 +163,14 @@ def generate_table():
         accs = [sf.get(str(b), {}).get(str(d), {}).get("accuracy", 0) * 100 for b in BINS]
         rows.append(f"| Stockfish depth {d} | {' | '.join(f'{a:.1f}%' for a in accs)} | 36-42% |")
     for b in BINS:
-        acc = maia.get(str(b), {}).get("full_maia", {}).get("accuracy", 0) * 100
-        rows.append(f"| Maia-{b} (paper arch) | {' | '.join(['—'] * 3)} | ~30-35% |")
+        sb = str(b)
+        if sb not in maia:
+            continue
+        accs = []
+        for tb in BINS:
+            key = "full_maia" if tb == b else f"full_maia_on_{tb}"
+            accs.append(f"{maia.get(sb, {}).get(key, {}).get('accuracy', 0) * 100:.1f}%")
+        rows.append(f"| Maia-{b} (paper arch) | {' | '.join(accs)} | 46-52% |")
     return "\n".join(rows)
 
 

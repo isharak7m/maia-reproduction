@@ -1,10 +1,3 @@
-"""AlphaZero-style move encoding: 8x8x73 policy head output.
-
-For each of 64 source squares, 73 planes encode:
-- 56 queen-move planes (8 directions x 7 distances)
-- 8 knight-move planes
-- 9 underpromotion planes (3 directions x 3 piece types)
-"""
 
 import chess
 import numpy as np
